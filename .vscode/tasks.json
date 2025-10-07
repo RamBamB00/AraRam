@@ -1,0 +1,24 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build Blue Square",
+      "type": "shell",
+      "command": "g++",
+      "args": [
+        "-IC:/Users/USER/Downloads/glad/include",
+        "-LC:/Users/USER/Downloads/glad/lib",
+        "src/blue_square.cpp",
+        "src/shader_utils.cpp",
+        "-o", "bin/blue_square.exe",
+        "-lglfw3",
+        "-lopengl32",
+        "-lgdi32"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    }
+  ]
+}
