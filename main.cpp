@@ -7,28 +7,21 @@
 #include <algorithm>
 #include <iostream>
 
-// Simple 2D Tetris implemented in a single file using OpenGL immediate mode.
-// No right-side bar; score is shown in the window title. Press R to restart.
 
 struct Color { float r, g, b; };
 
 struct Vec2I { int x, y; };
 
-// Board size
 static const int BOARD_COLS = 10;
 static const int BOARD_ROWS = 20;
 
-// Cell size in pixels
 static const int CELL_SIZE = 24;
 
-// Active piece data
 struct Piece {
-    // 4 rotation states, each state has 4 blocks (x, y) in local coords
     std::array<std::array<Vec2I, 4>, 4> rotations;
     Color color;
 };
 
-// Define the 7 Tetrominoes (I, O, T, S, Z, J, L)
 static const std::array<Piece, 7> TETROMINOES = {{
     // I
     Piece{
@@ -103,16 +96,14 @@ static const std::array<Piece, 7> TETROMINOES = {{
 }};
 
 struct GameState {
-    // Board stores -1 for empty, or 0..6 for tetromino index
     std::array<int, BOARD_COLS * BOARD_ROWS> board;
     int currentPieceIdx;
     int rotation;
-    int posX; // top-left origin of piece local grid
+    int posX; 
     int posY;
     int score;
     bool gameOver;
 
-    // input edge detection
     bool prevLeft;
     bool prevRight;
     bool prevDown;
@@ -174,7 +165,6 @@ static int clearLines(GameState &g) {
             ++cleared;
         }
     }
-    // scoring: 40/100/300/1200 like classic (single/double/triple/tetris)
     switch (cleared) {
         case 1: g.score += 40; break;
         case 2: g.score += 100; break;
@@ -204,7 +194,6 @@ static void drawCell(float x, float y, float size, const Color &c) {
     glVertex2f(x, y + size);
     glEnd();
 
-    // border
     glColor3f(0.05f, 0.05f, 0.05f);
     glBegin(GL_LINE_LOOP);
     glVertex2f(x, y);
@@ -230,7 +219,6 @@ static void renderGame(const GameState &g, int winW, int winH) {
     const float originX = (winW - boardPixelW) * 0.5f;
     const float originY = (winH - boardPixelH) * 0.5f;
 
-    // draw board cells
     for (int y = 0; y < BOARD_ROWS; ++y) {
         for (int x = 0; x < BOARD_COLS; ++x) {
             int v = g.board[idx(x, y)];
@@ -239,7 +227,6 @@ static void renderGame(const GameState &g, int winW, int winH) {
         }
     }
 
-    // draw active piece
     if (!g.gameOver) {
         const auto &shape = TETROMINOES[g.currentPieceIdx].rotations[g.rotation];
         const Color c = TETROMINOES[g.currentPieceIdx].color;
@@ -272,7 +259,7 @@ int main() {
     }
 
     glfwMakeContextCurrent(window);
-    glfwSwapInterval(1); // vsync
+    glfwSwapInterval(1);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -288,8 +275,8 @@ int main() {
 
     double lastTime = glfwGetTime();
     double fallAccumulator = 0.0;
-    const double baseFallInterval = 0.6; // seconds per cell at level 1
-    const double softDropMultiplier = 0.08; // faster when holding down
+    const double baseFallInterval = 0.6; 
+    const double softDropMultiplier = 0.08; 
 
     updateWindowTitle(window, g.score, g.gameOver);
 
@@ -299,27 +286,24 @@ int main() {
         int winW, winH;
         glfwGetFramebufferSize(window, &winW, &winH);
 
-        // Input edge detection
         bool left  = glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS;
         bool right = glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS;
         bool up    = glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS;      // rotate
-        bool down  = glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS;    // soft drop
-        bool space = glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS;   // hard drop
-        bool keyR  = glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS;       // restart
+        bool down  = glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS;    
+        bool space = glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS;   
+        bool keyR  = glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS;       
 
         if (g.gameOver) {
             if (keyR && !g.prevR) {
                 resetGame(g);
                 updateWindowTitle(window, g.score, g.gameOver);
             }
-            // still render background grid
             renderGame(g, winW, winH);
             glfwSwapBuffers(window);
             g.prevR = keyR;
             continue;
         }
 
-        // Movement left/right with edge detection
         if (left && !g.prevLeft) {
             if (!collides(g, g.currentPieceIdx, g.rotation, g.posX - 1, g.posY)) g.posX -= 1;
         }
@@ -327,7 +311,6 @@ int main() {
             if (!collides(g, g.currentPieceIdx, g.rotation, g.posX + 1, g.posY)) g.posX += 1;
         }
 
-        // Rotation (simple wall-kick: try shift left/right if needed)
         if (up && !g.prevUp) {
             int nextRot = (g.rotation + 1) % 4;
             if (!collides(g, g.currentPieceIdx, nextRot, g.posX, g.posY)) {
@@ -339,7 +322,6 @@ int main() {
             }
         }
 
-        // Time step
         double now = glfwGetTime();
         double dt = now - lastTime;
         lastTime = now;
@@ -348,13 +330,11 @@ int main() {
         double interval = baseFallInterval;
         if (down) interval *= softDropMultiplier;
 
-        // Hard drop
         if (space && !g.prevSpace) {
             int steps = 0;
             while (!collides(g, g.currentPieceIdx, g.rotation, g.posX, g.posY + 1)) {
                 g.posY += 1; ++steps;
             }
-            // small reward per cell hard-dropped
             g.score += steps;
             lockPiece(g);
             clearLines(g);
@@ -362,7 +342,6 @@ int main() {
             updateWindowTitle(window, g.score, g.gameOver);
         }
 
-        // Gravity
         while (fallAccumulator >= interval) {
             fallAccumulator -= interval;
             if (!collides(g, g.currentPieceIdx, g.rotation, g.posX, g.posY + 1)) {
@@ -375,11 +354,9 @@ int main() {
             }
         }
 
-        // Render
         renderGame(g, winW, winH);
         glfwSwapBuffers(window);
 
-        // Update previous input states
         g.prevLeft = left; g.prevRight = right; g.prevDown = down; g.prevUp = up; g.prevSpace = space; g.prevR = keyR;
     }
 
